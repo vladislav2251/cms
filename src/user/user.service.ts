@@ -5,6 +5,9 @@ import { AuthDto } from 'src/auth/dto/auth.dto';
  
 @Injectable()
 export class UserService {
+    findByEmail(email: string) {
+        throw new Error('Method not implemented.');
+    }
     constructor(private readonly prisma: PrismaService) {}
 
     async getById(id: string) {
