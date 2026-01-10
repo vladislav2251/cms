@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/prisma.service';
 import { UserService } from 'src/user/user.service';
@@ -18,7 +18,20 @@ export class AuthService {
         }
     }
 
-    async register(dto: AuthDto) {}
+    async register(dto: AuthDto) {
+        const oldUser = await this.userService.getByEmail(dto.email);
+        if (oldUser) {
+            throw new BadRequestException('User already exists');
+        }
+
+        const user = await this.userService.create(dto);
+        const tokens = this.issueTokens(user.id);
+
+        return {
+            user,
+            ...tokens
+        }
+    }
 
     issueTokens(userId: string) {
         const data = {id: userId};
