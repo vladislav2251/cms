@@ -1,13 +1,22 @@
 import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/prisma.service';
 import { UserService } from 'src/user/user.service';
 import { AuthDto } from './dto/auth.dto';
-import { ref } from 'node:process';
+import { Response } from 'express';
 
 @Injectable()
 export class AuthService {
-    constructor(private jwt: JwtService, private userService: UserService, private prisma: PrismaService) {}
+    EXPIRES_IN = 1;
+    REFRESH_TOKEN_NAME = 'refreshToken';
+
+    constructor(
+        private jwt: JwtService, 
+        private userService: UserService, 
+        private prisma: PrismaService,
+        private configService: ConfigService,
+    ) {}
     
     async login(dto: AuthDto) {
         const user = await this.validateUser(dto);
@@ -73,5 +82,30 @@ export class AuthService {
         }
 
         return user;
+    }
+
+    addRefreshTokenToResponse(res: Response, refreshToken: string) {
+        const expiresIn = new Date();
+        expiresIn.setDate(expiresIn.getDate() + this.EXPIRES_IN);
+
+        res.cookie(this.REFRESH_TOKEN_NAME, refreshToken, {
+            httpOnly: true,
+            domain: this.configService.get('SERVER_DOMAIN'),
+            expires: expiresIn,
+            secure: true,
+            sameSite: 'lax',
+
+        });
+    }
+
+    removeRefreshTokenToResponse(res: Response) {
+        res.cookie(this.REFRESH_TOKEN_NAME, '', {
+            httpOnly: true,
+            domain: this.configService.get('SERVER_DOMAIN'),
+            expires: new Date(0),
+            secure: true,
+            sameSite: 'lax',
+            
+        });
     }
 }
