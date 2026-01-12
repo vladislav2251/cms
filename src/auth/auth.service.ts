@@ -84,6 +84,32 @@ export class AuthService {
         return user;
     }
 
+    async validateOAuthLogin(req: any)  {
+        let user = await this.userService.getByEmail(req.user.email);
+
+        if (!user) {
+            user = await this.prisma.user.create({
+                data: {
+                    email: req.user.email,
+                    name: req.user.name,
+                    picture: req.user.picture,
+                },
+                include: {
+                    stores: true,
+                    favorites: true,
+                    orders: true,
+                }
+            });
+        }
+
+        const tokens = this.issueTokens(user.id);
+
+        return {
+            user,
+            ...tokens
+        }
+    }
+
     addRefreshTokenToResponse(res: Response, refreshToken: string) {
         const expiresIn = new Date();
         expiresIn.setDate(expiresIn.getDate() + this.EXPIRES_IN);
